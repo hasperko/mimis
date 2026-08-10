@@ -1,9 +1,10 @@
 import './App.css'
+import GameCanvas from './GameCanvas'
 
 function App() {
   return (
     <>
-      <canvas></canvas>
+      <GameCanvas />
     </>
   )
 }
