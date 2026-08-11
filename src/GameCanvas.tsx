@@ -9,26 +9,32 @@ function GameCanvas() {
     const PLAYER_SIZE = 50;
     const PLAYERS = 4;
 
+    const PADDING = 10; // Padding between players to prevent overlap
+
+    const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'cyan', 'magenta'] as const;
+    type Color = typeof COLORS[number];
+
     interface Player {
         x: number;
         y: number;
+        color: Color;
     }
 
     const players: Player[] = [];
 
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
-            ctx.fillStyle = 'blue';
+            ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
         }
     }
 
     function doPlayersOverlap(player1: Player, player2: Player): boolean {
         return !(
-            player1.x + PLAYER_SIZE < player2.x ||
-            player1.x > player2.x + PLAYER_SIZE ||
-            player1.y + PLAYER_SIZE < player2.y ||
-            player1.y > player2.y + PLAYER_SIZE
+            player1.x + PLAYER_SIZE + PADDING < player2.x ||
+            player1.x > player2.x + PLAYER_SIZE + PADDING ||
+            player1.y + PLAYER_SIZE + PADDING < player2.y ||
+            player1.y > player2.y + PLAYER_SIZE + PADDING
         );
     }
 
@@ -51,6 +57,7 @@ function GameCanvas() {
             let newPlayer: Player = {
                 x: Math.random() * (canvas.width - PLAYER_SIZE),
                 y: Math.random() * (canvas.height - PLAYER_SIZE),
+                color: COLORS[Math.floor(Math.random() * COLORS.length)]
             };
             let overlapFound = false;
             for (const player of players) {
