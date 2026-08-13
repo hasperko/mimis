@@ -20,7 +20,7 @@ function GameCanvas() {
         color: Color;
     }
 
-    const players: Player[] = [];
+    const playersRef = useRef<Player[]>([]);
 
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
@@ -60,7 +60,7 @@ function GameCanvas() {
                 color: COLORS[Math.floor(Math.random() * COLORS.length)]
             };
             let overlapFound = false;
-            for (const player of players) {
+            for (const player of playersRef.current) {
                 if (doPlayersOverlap(newPlayer, player)) {
                     i--;
                     attemptCount++;
@@ -69,11 +69,11 @@ function GameCanvas() {
                 }
             } 
             if (!overlapFound) {
-                players.push(newPlayer);
+                playersRef.current.push(newPlayer);
             }
         }
 
-        drawPlayers(ctx, players);
+        drawPlayers(ctx, playersRef.current);
     }, []);
 
 
