@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import {colord} from 'colord';
 
 import './GameCanvas.css';
 
@@ -12,24 +13,33 @@ function GameCanvas() {
 
     const PADDING = 10; // Padding between players to prevent overlap
 
-    const COLORS = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'cyan', 'magenta'] as const;
+    const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#ffaa00', '#00ffff', '#ff00aa'] as const;
     type Color = typeof COLORS[number];
+    type State = 'awake' | 'asleep';
+
 
     interface Player {
         x: number;
         y: number;
         color: Color;
+        state: State;
+        asleepTimer?: number; // Optional timer for sleeping state
     }
+
 
     const playersRef = useRef<Player[]>([]);
 
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
-            ctx.fillStyle = player.color;
+            ctx.fillStyle = player.state === 'asleep' ? colord(player.color).darken(0.5).toHex() : player.color;
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
         }
     }
     function updatePlayerPosition(player: Player, canvasWidth: number, canvasHeight: number) {
+        if (player.state === 'asleep') {
+            return; // Do not update position if the player is asleep
+        }
+
         const speed = 2; // Adjust the speed as needed
 
         // Randomly change direction
@@ -43,10 +53,31 @@ function GameCanvas() {
         player.y = Math.max(0, Math.min(player.y, canvasHeight - PLAYER_SIZE));
     }
 
+    function updatePlayerState(player: Player) {
+        switch (player.state) {
+            case 'awake':
+                if (Math.random() < 0.0005) { // 0.5% chance to fall asleep
+                    player.state = 'asleep';
+                    player.asleepTimer = 200; // Sleep for 200 frames (~3.3 seconds at 60fps)
+                }
+                break;
+            case 'asleep':
+                if (player.asleepTimer !== undefined) {
+                    player.asleepTimer--;
+                    if (player.asleepTimer <= 0) {
+                        player.state = 'awake';
+                        delete player.asleepTimer;
+                    }
+                }
+                break;
+        }
+    }
+
     const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         for(const player of players) {
             updatePlayerPosition(player, ctx.canvas.width, ctx.canvas.height);
+            updatePlayerState(player);
         }
         drawPlayers(ctx, players);
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, players));
@@ -81,7 +112,8 @@ function GameCanvas() {
             let newPlayer: Player = {
                 x: Math.random() * (canvas.width - PLAYER_SIZE),
                 y: Math.random() * (canvas.height - PLAYER_SIZE),
-                color: COLORS[Math.floor(Math.random() * COLORS.length)]
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                state: 'awake'
             };
             let overlapFound = false;
             for (const player of playersRef.current) {
