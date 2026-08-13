@@ -28,6 +28,29 @@ function GameCanvas() {
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
         }
     }
+    function updatePlayerPosition(player: Player, canvasWidth: number, canvasHeight: number) {
+        const speed = 2; // Adjust the speed as needed
+
+        // Randomly change direction
+        if (Math.random() < 0.02) {
+            player.x += (Math.random() - 0.5) * speed * 10;
+            player.y += (Math.random() - 0.5) * speed * 10;
+        }
+
+        // Keep the player within the canvas bounds
+        player.x = Math.max(0, Math.min(player.x, canvasWidth - PLAYER_SIZE));
+        player.y = Math.max(0, Math.min(player.y, canvasHeight - PLAYER_SIZE));
+    }
+
+    const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        drawPlayers(ctx, players);
+        for(const player of players) {
+            updatePlayerPosition(player, ctx.canvas.width, ctx.canvas.height);
+        }
+
+        requestAnimationFrame(() => render(ctx, players));
+    }
 
     function doPlayersOverlap(player1: Player, player2: Player): boolean {
         return !(
@@ -74,6 +97,7 @@ function GameCanvas() {
         }
 
         drawPlayers(ctx, playersRef.current);
+        render(ctx, playersRef.current);
     }, []);
 
 
