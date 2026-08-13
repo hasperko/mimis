@@ -5,6 +5,7 @@ import './GameCanvas.css';
 
 function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const AnimationFrameIdRef = useRef<number | null>(null);
 
     const PLAYER_SIZE = 50;
     const PLAYERS = 4;
@@ -44,12 +45,11 @@ function GameCanvas() {
 
     const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        drawPlayers(ctx, players);
         for(const player of players) {
             updatePlayerPosition(player, ctx.canvas.width, ctx.canvas.height);
         }
-
-        requestAnimationFrame(() => render(ctx, players));
+        drawPlayers(ctx, players);
+        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, players));
     }
 
     function doPlayersOverlap(player1: Player, player2: Player): boolean {
@@ -72,6 +72,7 @@ function GameCanvas() {
         if (!ctx) return;
 
         let attemptCount = 0;
+        playersRef.current = [];
         for (let i = 0; i < PLAYERS; i++) {
             if (attemptCount > 100) {
                 console.error('Could not place all players without overlap after 100 attempts.');
@@ -96,8 +97,13 @@ function GameCanvas() {
             }
         }
 
-        drawPlayers(ctx, playersRef.current);
-        render(ctx, playersRef.current);
+        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
+
+        return () => {
+            if (AnimationFrameIdRef.current !== null) {
+                cancelAnimationFrame(AnimationFrameIdRef.current);
+            }
+        }
     }, []);
 
 
