@@ -14,15 +14,17 @@ function GameCanvas() {
     const PADDING = 10; // Padding between players to prevent overlap
 
     const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#ffaa00', '#00ffff', '#ff00aa'] as const;
+    const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi'] as const;
+    type Name = typeof NAMES[number];
     type Color = typeof COLORS[number];
-    type State = 'awake' | 'asleep';
 
 
     interface Player {
+        name: Name;
+        showNameTimer?: number; // Optional timer for showing name
         x: number;
         y: number;
         color: Color;
-        state: State;
         asleepTimer?: number; // Optional timer for sleeping state
     }
 
@@ -31,12 +33,17 @@ function GameCanvas() {
 
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
-            ctx.fillStyle = player.state === 'asleep' ? colord(player.color).darken(0.5).toHex() : player.color;
+            ctx.fillStyle = player.asleepTimer !== undefined ? colord(player.color).darken(0.5).toHex() : player.color;
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+            if (player.showNameTimer !== undefined) {
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                ctx.fillText(player.name, player.x, player.y - 10);
+            }
         }
     }
     function updatePlayerPosition(player: Player, canvasWidth: number, canvasHeight: number) {
-        if (player.state === 'asleep') {
+        if (player.asleepTimer !== undefined) {
             return; // Do not update position if the player is asleep
         }
 
@@ -54,22 +61,21 @@ function GameCanvas() {
     }
 
     function updatePlayerState(player: Player) {
-        switch (player.state) {
-            case 'awake':
-                if (Math.random() < 0.0005) { // 0.5% chance to fall asleep
-                    player.state = 'asleep';
-                    player.asleepTimer = 200; // Sleep for 200 frames (~3.3 seconds at 60fps)
-                }
-                break;
-            case 'asleep':
-                if (player.asleepTimer !== undefined) {
-                    player.asleepTimer--;
-                    if (player.asleepTimer <= 0) {
-                        player.state = 'awake';
-                        delete player.asleepTimer;
-                    }
-                }
-                break;
+        if(player.showNameTimer !== undefined) {
+            player.showNameTimer--;
+            if(player.showNameTimer <= 0) {
+                delete player.showNameTimer;
+            }
+        }
+        if(player.asleepTimer !== undefined) {
+            player.asleepTimer--;
+            if(player.asleepTimer <= 0) {
+                delete player.asleepTimer;
+            }
+        } else {
+            if(Math.random() < 0.0005) { // 0.05% chance to fall asleep
+                player.asleepTimer = 200; // Sleep for 200 frames (~3.3 seconds at 60fps)
+            }
         }
     }
 
@@ -90,6 +96,20 @@ function GameCanvas() {
             player1.y + PLAYER_SIZE + PADDING < player2.y ||
             player1.y > player2.y + PLAYER_SIZE + PADDING
         );
+    }
+
+    function handleClick(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
+        for (const player of playersRef.current) {
+            if (player.x <= clientX && clientX <= player.x + PLAYER_SIZE &&
+                player.y <= clientY && clientY <= player.y + PLAYER_SIZE) {
+                player.showNameTimer = 100; // Show name for 100 frames (~1.7 seconds at 60fps)
+            }
+        }
     }
 
     useEffect(() => {
@@ -113,7 +133,7 @@ function GameCanvas() {
                 x: Math.random() * (canvas.width - PLAYER_SIZE),
                 y: Math.random() * (canvas.height - PLAYER_SIZE),
                 color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                state: 'awake'
+                name: NAMES[Math.floor(Math.random() * NAMES.length)],
             };
             let overlapFound = false;
             for (const player of playersRef.current) {
@@ -141,7 +161,7 @@ function GameCanvas() {
 
 
 
-    return(<canvas ref={canvasRef}></canvas>);
+    return(<canvas ref={canvasRef} onClick={handleClick}></canvas>);
 }
 
 export default GameCanvas;
