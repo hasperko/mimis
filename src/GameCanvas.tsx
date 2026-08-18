@@ -7,9 +7,15 @@ import './GameCanvas.css';
 function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
+    const keyRef = useRef<{[key: string]: boolean}>({});
+
+    const cameraRef = useRef<Camera>({ x: 0, y: 0 });
 
     const PLAYER_SIZE = 50;
-    const PLAYERS = 4;
+    const PLAYERS = 100;
+
+    const WORLD_WIDTH = 2000; // Width of the world
+    const WORLD_HEIGHT = 2000; // Height of the world
 
     const PADDING = 10; // Padding between players to prevent overlap
 
@@ -17,6 +23,11 @@ function GameCanvas() {
     const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi'] as const;
     type Name = typeof NAMES[number];
     type Color = typeof COLORS[number];
+
+    interface Camera {
+        x: number;
+        y: number;
+    }
 
 
     interface Player {
@@ -42,7 +53,7 @@ function GameCanvas() {
             }
         }
     }
-    function updatePlayerPosition(player: Player, canvasWidth: number, canvasHeight: number) {
+    function updatePlayerPosition(player: Player) {
         if (player.asleepTimer !== undefined) {
             return; // Do not update position if the player is asleep
         }
@@ -56,8 +67,8 @@ function GameCanvas() {
         }
 
         // Keep the player within the canvas bounds
-        player.x = Math.max(0, Math.min(player.x, canvasWidth - PLAYER_SIZE));
-        player.y = Math.max(0, Math.min(player.y, canvasHeight - PLAYER_SIZE));
+        player.x = Math.max(0, Math.min(player.x, WORLD_WIDTH - PLAYER_SIZE));
+        player.y = Math.max(0, Math.min(player.y, WORLD_HEIGHT - PLAYER_SIZE));
     }
 
     function updatePlayerState(player: Player) {
@@ -80,12 +91,27 @@ function GameCanvas() {
     }
 
     const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
+        ctx.save();
+        if(keyRef.current['ArrowUp']) {
+            cameraRef.current.y -= 5;
+        }
+        if(keyRef.current['ArrowDown']) {
+            cameraRef.current.y += 5;
+        }
+        if(keyRef.current['ArrowLeft']) {
+            cameraRef.current.x -= 5;
+        }
+        if(keyRef.current['ArrowRight']) {
+            cameraRef.current.x += 5;
+        }
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.translate(-cameraRef.current.x, -cameraRef.current.y);
         for(const player of players) {
-            updatePlayerPosition(player, ctx.canvas.width, ctx.canvas.height);
+            updatePlayerPosition(player);
             updatePlayerState(player);
         }
         drawPlayers(ctx, players);
+        ctx.restore();
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, players));
     }
 
@@ -101,16 +127,29 @@ function GameCanvas() {
     function handleClick(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
         const canvas = canvasRef.current;
         if (!canvas) return;
+        const camera = cameraRef.current;
+
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.clientX - rect.left;
-        const clientY = e.clientY - rect.top;
+        const worldX = e.clientX - rect.left + camera.x;
+        const worldY = e.clientY - rect.top + camera.y;
         for (const player of playersRef.current) {
-            if (player.x <= clientX && clientX <= player.x + PLAYER_SIZE &&
-                player.y <= clientY && clientY <= player.y + PLAYER_SIZE) {
+            if (player.x <= worldX && worldX <= player.x + PLAYER_SIZE &&
+                player.y <= worldY && worldY <= player.y + PLAYER_SIZE) {
                 player.showNameTimer = 100; // Show name for 100 frames (~1.7 seconds at 60fps)
             }
         }
     }
+
+    function handleKeyDown(e: KeyboardEvent) {
+        e.preventDefault();
+        keyRef.current[e.key] = true;
+    }
+
+    function handleKeyUp(e: KeyboardEvent) {
+        e.preventDefault();
+        keyRef.current[e.key] = false;
+    }
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -122,6 +161,9 @@ function GameCanvas() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
         let attemptCount = 0;
         playersRef.current = [];
         for (let i = 0; i < PLAYERS; i++) {
@@ -130,8 +172,8 @@ function GameCanvas() {
                 break;
             }
             let newPlayer: Player = {
-                x: Math.random() * (canvas.width - PLAYER_SIZE),
-                y: Math.random() * (canvas.height - PLAYER_SIZE),
+                x: Math.random() * (WORLD_WIDTH - PLAYER_SIZE),
+                y: Math.random() * (WORLD_HEIGHT - PLAYER_SIZE),
                 color: COLORS[Math.floor(Math.random() * COLORS.length)],
                 name: NAMES[Math.floor(Math.random() * NAMES.length)],
             };
@@ -155,6 +197,8 @@ function GameCanvas() {
             if (AnimationFrameIdRef.current !== null) {
                 cancelAnimationFrame(AnimationFrameIdRef.current);
             }
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
         }
     }, []);
 
