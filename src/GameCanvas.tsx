@@ -170,12 +170,16 @@ function GameCanvas() {
     }
 
     function handleKeyDown(e: KeyboardEvent) {
-        e.preventDefault();
+        if(e.key.startsWith('Arrow')) {
+            e.preventDefault();
+        }
         keyRef.current[e.key] = true;
     }
 
     function handleKeyUp(e: KeyboardEvent) {
-        e.preventDefault();
+        if(e.key.startsWith('Arrow')) {
+            e.preventDefault();
+        }
         keyRef.current[e.key] = false;
     }
 
