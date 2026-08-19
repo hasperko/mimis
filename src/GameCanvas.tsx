@@ -17,12 +17,20 @@ function GameCanvas() {
     const WORLD_WIDTH = 2000; // Width of the world
     const WORLD_HEIGHT = 2000; // Height of the world
 
+    const CAMERA_SPEED = 5; // Speed of camera movement
+    const CAMERA_BORDER = 100; // Distance from the edge of the canvas before the camera starts moving
+
     const PADDING = 10; // Padding between players to prevent overlap
 
     const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#ffaa00', '#00ffff', '#ff00aa'] as const;
-    const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi'] as const;
+    const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan', 'Julia', 'Kevin', 'Linda', 'Mike', 'Nina', 'Oscar', 'Paula', 'Quinn', 'Rachel', 'Steve', 'Tina'] as const;
+    const SUFFIXES = ['Jr.', 'Sr.', 'III', 'IV', 'V'] as const;
+    type Suffix = typeof SUFFIXES[number];
     type Name = typeof NAMES[number];
     type Color = typeof COLORS[number];
+    const BACKGROUND_COLOR = '#83c7ff';
+    const BORDER_COLOR = '#000000';
+    const BORDER_WIDTH = 10;
 
     interface Camera {
         x: number;
@@ -32,6 +40,7 @@ function GameCanvas() {
 
     interface Player {
         name: Name;
+        suffix?: Suffix; // Optional suffix for the name
         showNameTimer?: number; // Optional timer for showing name
         x: number;
         y: number;
@@ -49,7 +58,11 @@ function GameCanvas() {
             if (player.showNameTimer !== undefined) {
                 ctx.fillStyle = '#000';
                 ctx.font = '16px Arial';
-                ctx.fillText(player.name, player.x, player.y - 10);
+                if (player.suffix) {
+                    ctx.fillText(`${player.name} ${player.suffix}`, player.x, player.y - 10);
+                } else {
+                    ctx.fillText(player.name, player.x, player.y - 10);
+                }
             }
         }
     }
@@ -67,8 +80,8 @@ function GameCanvas() {
         }
 
         // Keep the player within the canvas bounds
-        player.x = Math.max(0, Math.min(player.x, WORLD_WIDTH - PLAYER_SIZE));
-        player.y = Math.max(0, Math.min(player.y, WORLD_HEIGHT - PLAYER_SIZE));
+        player.x = Math.max(0+BORDER_WIDTH, Math.min(player.x, WORLD_WIDTH - PLAYER_SIZE -BORDER_WIDTH));
+        player.y = Math.max(0+BORDER_WIDTH, Math.min(player.y, WORLD_HEIGHT - PLAYER_SIZE -BORDER_WIDTH));
     }
 
     function updatePlayerState(player: Player) {
@@ -89,23 +102,39 @@ function GameCanvas() {
             }
         }
     }
+    function moveCamera(camera: Camera, keyRef: React.RefObject<{[key: string]: boolean}>, canvasRef: React.RefObject<HTMLCanvasElement | null>) {
+        if(keyRef.current['ArrowUp']) {
+            if (camera.y - CAMERA_SPEED >= 0 - CAMERA_BORDER) {
+                camera.y -= CAMERA_SPEED;
+            }
+        }
+        if(keyRef.current['ArrowDown']) {
+            if (camera.y + canvasRef.current!.height + CAMERA_SPEED <= WORLD_HEIGHT + CAMERA_BORDER) {
+                camera.y += CAMERA_SPEED;
+            }
+        }
+        if(keyRef.current['ArrowLeft']) {
+            if (camera.x - CAMERA_SPEED >= 0 - CAMERA_BORDER) {
+                camera.x -= CAMERA_SPEED;
+            }   
+        }
+        if(keyRef.current['ArrowRight']) {
+            if (camera.x + canvasRef.current!.width + CAMERA_SPEED <= WORLD_WIDTH + CAMERA_BORDER) {
+                camera.x += CAMERA_SPEED;
+            }
+        }
+    }
 
     const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
         ctx.save();
-        if(keyRef.current['ArrowUp']) {
-            cameraRef.current.y -= 5;
-        }
-        if(keyRef.current['ArrowDown']) {
-            cameraRef.current.y += 5;
-        }
-        if(keyRef.current['ArrowLeft']) {
-            cameraRef.current.x -= 5;
-        }
-        if(keyRef.current['ArrowRight']) {
-            cameraRef.current.x += 5;
-        }
+        moveCamera(cameraRef.current, keyRef, canvasRef);
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.translate(-cameraRef.current.x, -cameraRef.current.y);
+        ctx.fillStyle = BACKGROUND_COLOR;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        ctx.strokeStyle = BORDER_COLOR;
+        ctx.lineWidth = BORDER_WIDTH;
+        ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         for(const player of players) {
             updatePlayerPosition(player);
             updatePlayerState(player);
@@ -177,6 +206,9 @@ function GameCanvas() {
                 color: COLORS[Math.floor(Math.random() * COLORS.length)],
                 name: NAMES[Math.floor(Math.random() * NAMES.length)],
             };
+            if (Math.random() < 0.5) { // 50% chance to have a suffix
+                newPlayer.suffix = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+            }
             let overlapFound = false;
             for (const player of playersRef.current) {
                 if (doPlayersOverlap(newPlayer, player)) {
