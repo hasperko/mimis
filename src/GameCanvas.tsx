@@ -12,10 +12,10 @@ function GameCanvas() {
     const cameraRef = useRef<Camera>({ x: 0, y: 0 });
 
     const PLAYER_SIZE = 50;
-    const PLAYERS = 100;
+    const PLAYERS = 500;
 
-    const WORLD_WIDTH = 2000; // Width of the world
-    const WORLD_HEIGHT = 2000; // Height of the world
+    const WORLD_WIDTH = 4000; // Width of the world
+    const WORLD_HEIGHT = 4000; // Height of the world
 
     const CAMERA_SPEED = 5; // Speed of camera movement
     const CAMERA_BORDER = 100; // Distance from the edge of the canvas before the camera starts moving
@@ -169,6 +169,20 @@ function GameCanvas() {
         }
     }
 
+    function handleResize() {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        if (cameraRef.current.y + canvas.height >= WORLD_HEIGHT + CAMERA_BORDER) {
+            cameraRef.current.y = WORLD_HEIGHT + CAMERA_BORDER - canvas.height;
+        }
+        if (cameraRef.current.x + canvas.width >= WORLD_WIDTH + CAMERA_BORDER) {
+            cameraRef.current.x = WORLD_WIDTH + CAMERA_BORDER - canvas.width;
+        }
+    }
+
     function handleKeyDown(e: KeyboardEvent) {
         if(e.key.startsWith('Arrow')) {
             e.preventDefault();
@@ -196,6 +210,7 @@ function GameCanvas() {
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('resize', handleResize);
 
         let attemptCount = 0;
         playersRef.current = [];
@@ -235,6 +250,7 @@ function GameCanvas() {
             }
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('resize', handleResize);
         }
     }, []);
 
