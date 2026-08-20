@@ -144,9 +144,18 @@ function GameCanvas() {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleTouchEnd);
 
-        playersRef.current = spawnPlayers();
-        
-        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
+        fetch('http://localhost:3000/players')
+            .then(response => response.json())
+            .then(data => {
+                playersRef.current = data;
+                AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
+            })
+            .catch(error => {
+                console.error('Error fetching players:', error);
+                // If fetching fails, spawn players locally
+                playersRef.current = spawnPlayers();
+                AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
+            });
 
         return () => {
             if (AnimationFrameIdRef.current !== null) {
