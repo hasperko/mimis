@@ -2,8 +2,9 @@ import { useRef, useEffect } from 'react';
 import {colord} from 'colord';
 import { PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH } from './constants'
 import type { Camera, Player } from './types';
-import { updatePlayerPosition, updatePlayerState, spawnPlayers } from './player';
 import { moveCamera } from './camera';
+
+import { io } from 'socket.io-client';
 
 import './GameCanvas.css';
 
@@ -35,7 +36,7 @@ function GameCanvas() {
     }
 
 
-    const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
+    const render = (ctx: CanvasRenderingContext2D) => {
         ctx.save();
         moveCamera(cameraRef.current, keyRef, canvasRef);
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -45,13 +46,9 @@ function GameCanvas() {
         ctx.strokeStyle = BORDER_COLOR;
         ctx.lineWidth = BORDER_WIDTH;
         ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-        for(const player of players) {
-            updatePlayerPosition(player);
-            updatePlayerState(player);
-        }
-        drawPlayers(ctx, players);
+        drawPlayers(ctx, playersRef.current);
         ctx.restore();
-        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, players));
+        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
     }
 
 
@@ -131,6 +128,7 @@ function GameCanvas() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -144,20 +142,15 @@ function GameCanvas() {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleTouchEnd);
 
-        fetch('http://localhost:3000/players')
-            .then(response => response.json())
-            .then(data => {
-                playersRef.current = data;
-                AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
-            })
-            .catch(error => {
-                console.error('Error fetching players:', error);
-                // If fetching fails, spawn players locally
-                playersRef.current = spawnPlayers();
-                AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
-            });
+        const socket = io('http://localhost:3000');
+        socket.on('players', (data: Player[]) => {
+            console.log('Received players from server');
+            playersRef.current = data;
+        })
+        AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
 
         return () => {
+            socket.disconnect();
             if (AnimationFrameIdRef.current !== null) {
                 cancelAnimationFrame(AnimationFrameIdRef.current);
             }
@@ -169,9 +162,6 @@ function GameCanvas() {
             window.removeEventListener('touchend', handleTouchEnd);
         }
     }, []);
-
-
-
 
     return(<canvas ref={canvasRef} onClick={handleClick}></canvas>);
 }
