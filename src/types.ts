@@ -11,6 +11,7 @@ export interface Camera {
 
 
 export interface Player {
+    id: number;
     name: Name;
     suffix?: Suffix; // Optional suffix for the name
     showNameTimer?: number; // Optional timer for showing name

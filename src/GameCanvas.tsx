@@ -5,6 +5,7 @@ import type { Camera, Player } from './types';
 import { moveCamera } from './camera';
 
 import { io } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 import './GameCanvas.css';
 
@@ -12,6 +13,8 @@ import './GameCanvas.css';
 function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
+
+    const socketRef = useRef<Socket | null>(null);
 
     const keyRef = useRef<{[key: string]: boolean}>({});
     const touchStartRef = useRef<{x: number, y: number} | null>(null);
@@ -63,7 +66,10 @@ function GameCanvas() {
         for (const player of playersRef.current) {
             if (player.x <= worldX && worldX <= player.x + PLAYER_SIZE &&
                 player.y <= worldY && worldY <= player.y + PLAYER_SIZE) {
-                player.showNameTimer = 100; // Show name for 100 frames (~1.7 seconds at 60fps)
+                if (socketRef.current) {
+                    console.log(`Clicked on player ${player.name} with id ${player.id}`);
+                    socketRef.current.emit('showName', player.id);
+                }
             }
         }
     }
@@ -142,15 +148,17 @@ function GameCanvas() {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleTouchEnd);
 
-        const socket = io('http://localhost:3000');
-        socket.on('players', (data: Player[]) => {
+        socketRef.current = io('http://localhost:3000');
+        socketRef.current.on('players', (data: Player[]) => {
             console.log('Received players from server');
             playersRef.current = data;
         })
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
 
         return () => {
-            socket.disconnect();
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
             if (AnimationFrameIdRef.current !== null) {
                 cancelAnimationFrame(AnimationFrameIdRef.current);
             }
