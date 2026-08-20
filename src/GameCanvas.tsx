@@ -8,6 +8,7 @@ function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
     const keyRef = useRef<{[key: string]: boolean}>({});
+    const touchStartRef = useRef<{x: number, y: number} | null>(null);
 
     const cameraRef = useRef<Camera>({ x: 0, y: 0 });
 
@@ -183,6 +184,33 @@ function GameCanvas() {
         }
     }
 
+    function handleTouchStart(e: TouchEvent) {
+        touchStartRef.current = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    }
+    function handleTouchMove(e: TouchEvent) {
+        e.preventDefault(); // Prevent scrolling    
+        let dx = touchStartRef.current ? e.touches[0].clientX - touchStartRef.current.x : 0;
+        let dy = touchStartRef.current ? e.touches[0].clientY - touchStartRef.current.y : 0;
+        if (cameraRef.current.x - dx < 0 - CAMERA_BORDER) {
+            dx = cameraRef.current.x + CAMERA_BORDER;
+        }
+        if (cameraRef.current.y - dy < 0 - CAMERA_BORDER) {
+            dy = cameraRef.current.y + CAMERA_BORDER;
+        }
+        if (cameraRef.current.x + canvasRef.current!.width - dx > WORLD_WIDTH + CAMERA_BORDER) {
+            dx = cameraRef.current.x + canvasRef.current!.width - (WORLD_WIDTH + CAMERA_BORDER);
+        }
+        if (cameraRef.current.y + canvasRef.current!.height - dy > WORLD_HEIGHT + CAMERA_BORDER) {
+            dy = cameraRef.current.y + canvasRef.current!.height - (WORLD_HEIGHT + CAMERA_BORDER);
+        }
+        cameraRef.current.x -= dx;
+        cameraRef.current.y -= dy;
+        touchStartRef.current = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    }
+    function handleTouchEnd(e: TouchEvent) {
+        touchStartRef.current = null;
+    }
+
     function handleKeyDown(e: KeyboardEvent) {
         if(e.key.startsWith('Arrow')) {
             e.preventDefault();
@@ -211,6 +239,9 @@ function GameCanvas() {
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('resize', handleResize);
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd);
 
         let attemptCount = 0;
         playersRef.current = [];
@@ -251,6 +282,9 @@ function GameCanvas() {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('resize', handleResize);
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
         }
     }, []);
 
