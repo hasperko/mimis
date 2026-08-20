@@ -1,5 +1,9 @@
 import { useRef, useEffect } from 'react';
 import {colord} from 'colord';
+import { PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH } from './constants'
+import type { Camera, Player } from './types';
+import { updatePlayerPosition, updatePlayerState, spawnPlayers } from './player';
+import { moveCamera } from './camera';
 
 import './GameCanvas.css';
 
@@ -7,49 +11,11 @@ import './GameCanvas.css';
 function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
+
     const keyRef = useRef<{[key: string]: boolean}>({});
     const touchStartRef = useRef<{x: number, y: number} | null>(null);
 
     const cameraRef = useRef<Camera>({ x: 0, y: 0 });
-
-    const PLAYER_SIZE = 50;
-    const PLAYERS = 500;
-
-    const WORLD_WIDTH = 4000; // Width of the world
-    const WORLD_HEIGHT = 4000; // Height of the world
-
-    const CAMERA_SPEED = 5; // Speed of camera movement
-    const CAMERA_BORDER = 100; // Distance from the edge of the canvas before the camera starts moving
-
-    const PADDING = 10; // Padding between players to prevent overlap
-
-    const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#ffaa00', '#00ffff', '#ff00aa'] as const;
-    const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan', 'Julia', 'Kevin', 'Linda', 'Mike', 'Nina', 'Oscar', 'Paula', 'Quinn', 'Rachel', 'Steve', 'Tina'] as const;
-    const SUFFIXES = ['Jr.', 'Sr.', 'III', 'IV', 'V'] as const;
-    type Suffix = typeof SUFFIXES[number];
-    type Name = typeof NAMES[number];
-    type Color = typeof COLORS[number];
-    const BACKGROUND_COLOR = '#83c7ff';
-    const BORDER_COLOR = '#000000';
-    const BORDER_WIDTH = 10;
-
-    interface Camera {
-        x: number;
-        y: number;
-    }
-
-
-    interface Player {
-        name: Name;
-        suffix?: Suffix; // Optional suffix for the name
-        showNameTimer?: number; // Optional timer for showing name
-        x: number;
-        y: number;
-        color: Color;
-        asleepTimer?: number; // Optional timer for sleeping state
-    }
-
-
     const playersRef = useRef<Player[]>([]);
 
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
@@ -67,64 +33,7 @@ function GameCanvas() {
             }
         }
     }
-    function updatePlayerPosition(player: Player) {
-        if (player.asleepTimer !== undefined) {
-            return; // Do not update position if the player is asleep
-        }
 
-        const speed = 2; // Adjust the speed as needed
-
-        // Randomly change direction
-        if (Math.random() < 0.02) {
-            player.x += (Math.random() - 0.5) * speed * 10;
-            player.y += (Math.random() - 0.5) * speed * 10;
-        }
-
-        // Keep the player within the canvas bounds
-        player.x = Math.max(0+BORDER_WIDTH, Math.min(player.x, WORLD_WIDTH - PLAYER_SIZE -BORDER_WIDTH));
-        player.y = Math.max(0+BORDER_WIDTH, Math.min(player.y, WORLD_HEIGHT - PLAYER_SIZE -BORDER_WIDTH));
-    }
-
-    function updatePlayerState(player: Player) {
-        if(player.showNameTimer !== undefined) {
-            player.showNameTimer--;
-            if(player.showNameTimer <= 0) {
-                delete player.showNameTimer;
-            }
-        }
-        if(player.asleepTimer !== undefined) {
-            player.asleepTimer--;
-            if(player.asleepTimer <= 0) {
-                delete player.asleepTimer;
-            }
-        } else {
-            if(Math.random() < 0.0005) { // 0.05% chance to fall asleep
-                player.asleepTimer = 200; // Sleep for 200 frames (~3.3 seconds at 60fps)
-            }
-        }
-    }
-    function moveCamera(camera: Camera, keyRef: React.RefObject<{[key: string]: boolean}>, canvasRef: React.RefObject<HTMLCanvasElement | null>) {
-        if(keyRef.current['ArrowUp']) {
-            if (camera.y - CAMERA_SPEED >= 0 - CAMERA_BORDER) {
-                camera.y -= CAMERA_SPEED;
-            }
-        }
-        if(keyRef.current['ArrowDown']) {
-            if (camera.y + canvasRef.current!.height + CAMERA_SPEED <= WORLD_HEIGHT + CAMERA_BORDER) {
-                camera.y += CAMERA_SPEED;
-            }
-        }
-        if(keyRef.current['ArrowLeft']) {
-            if (camera.x - CAMERA_SPEED >= 0 - CAMERA_BORDER) {
-                camera.x -= CAMERA_SPEED;
-            }   
-        }
-        if(keyRef.current['ArrowRight']) {
-            if (camera.x + canvasRef.current!.width + CAMERA_SPEED <= WORLD_WIDTH + CAMERA_BORDER) {
-                camera.x += CAMERA_SPEED;
-            }
-        }
-    }
 
     const render = (ctx: CanvasRenderingContext2D, players: Player[]) => {
         ctx.save();
@@ -145,14 +54,6 @@ function GameCanvas() {
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, players));
     }
 
-    function doPlayersOverlap(player1: Player, player2: Player): boolean {
-        return !(
-            player1.x + PLAYER_SIZE + PADDING < player2.x ||
-            player1.x > player2.x + PLAYER_SIZE + PADDING ||
-            player1.y + PLAYER_SIZE + PADDING < player2.y ||
-            player1.y > player2.y + PLAYER_SIZE + PADDING
-        );
-    }
 
     function handleClick(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
         const canvas = canvasRef.current;
@@ -207,7 +108,7 @@ function GameCanvas() {
         cameraRef.current.y -= dy;
         touchStartRef.current = {x: e.touches[0].clientX, y: e.touches[0].clientY};
     }
-    function handleTouchEnd(e: TouchEvent) {
+    function handleTouchEnd() {
         touchStartRef.current = null;
     }
 
@@ -243,36 +144,8 @@ function GameCanvas() {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleTouchEnd);
 
-        let attemptCount = 0;
-        playersRef.current = [];
-        for (let i = 0; i < PLAYERS; i++) {
-            if (attemptCount > 100) {
-                console.error('Could not place all players without overlap after 100 attempts.');
-                break;
-            }
-            let newPlayer: Player = {
-                x: Math.random() * (WORLD_WIDTH - PLAYER_SIZE),
-                y: Math.random() * (WORLD_HEIGHT - PLAYER_SIZE),
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                name: NAMES[Math.floor(Math.random() * NAMES.length)],
-            };
-            if (Math.random() < 0.5) { // 50% chance to have a suffix
-                newPlayer.suffix = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
-            }
-            let overlapFound = false;
-            for (const player of playersRef.current) {
-                if (doPlayersOverlap(newPlayer, player)) {
-                    i--;
-                    attemptCount++;
-                    overlapFound = true;
-                    break;
-                }
-            } 
-            if (!overlapFound) {
-                playersRef.current.push(newPlayer);
-            }
-        }
-
+        playersRef.current = spawnPlayers();
+        
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx, playersRef.current));
 
         return () => {
