@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import {colord} from 'colord';
-import { PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH } from './constants'
+import { SHOW_NAMES, PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH } from './constants'
 import type { Camera, Player } from './types';
 import { moveCamera } from './camera';
 
@@ -26,7 +26,7 @@ function GameCanvas() {
         for (const player of players) {
             ctx.fillStyle = player.asleepTimer !== undefined ? colord(player.color).darken(0.5).toHex() : player.color;
             ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
-            if (player.showNameTimer !== undefined) {
+            if(SHOW_NAMES) {
                 ctx.fillStyle = '#000';
                 ctx.font = '16px Arial';
                 if (player.suffix) {
@@ -35,6 +35,15 @@ function GameCanvas() {
                     ctx.fillText(player.name, player.x, player.y - 10);
                 }
             }
+            else if (player.showNameTimer !== undefined) {
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                if (player.suffix) {
+                    ctx.fillText(`${player.name} ${player.suffix}`, player.x, player.y - 10);
+                } else {
+                    ctx.fillText(player.name, player.x, player.y - 10);
+                }
+            } 
         }
     }
 
