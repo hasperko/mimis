@@ -8,7 +8,7 @@ export const SUFFIXES = ['Jr.', 'Sr.', 'III', 'IV', 'V'] as const;
 export const WORLD_WIDTH = 4000; // Width of the world
 export const WORLD_HEIGHT = 4000; // Height of the world
 
-export const CAMERA_SPEED = 2; // Speed of camera movement
+export const CAMERA_SPEED = 10; // Speed of camera movement
 export const CAMERA_BORDER = 100; // Distance from the edge of the canvas before the camera starts moving
 
 export const PADDING = 10; // Padding between players to prevent overlap
