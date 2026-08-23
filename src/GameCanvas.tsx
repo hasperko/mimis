@@ -13,6 +13,7 @@ import './GameCanvas.css';
 function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
+    const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
     const socketRef = useRef<Socket | null>(null);
 
@@ -22,10 +23,28 @@ function GameCanvas() {
     const cameraRef = useRef<Camera>({ x: 0, y: 0 });
     const playersRef = useRef<Player[]>([]);
 
+    function getImage(url: string): HTMLImageElement {
+        const cache = imageCacheRef.current;
+        let img = cache.get(url);
+        if (!img) {
+            img = new Image();
+            img.src = url;
+            cache.set(url, img);
+        }
+        return img;
+    }
+
+
+
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
-            ctx.fillStyle = player.asleepTimer !== undefined ? colord(player.color).darken(0.5).toHex() : player.color;
-            ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+            const img = player.url ? getImage(player.url) : null;
+            if (img && img.complete && img.naturalWidth !== 0) {
+                ctx.drawImage(img, player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+            } else {
+                ctx.fillStyle = player.asleepTimer !== undefined ? colord(player.color).darken(0.5).toHex() : player.color;
+                ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+            }
             if(SHOW_NAMES) {
                 ctx.fillStyle = '#000';
                 ctx.font = '16px Arial';

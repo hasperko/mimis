@@ -19,4 +19,5 @@ export interface Player {
     y: number;
     color: Color;
     asleepTimer?: number; // Optional timer for sleeping state
+    url: string; // URL for the player's image
 }
