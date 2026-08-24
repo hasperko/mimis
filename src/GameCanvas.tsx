@@ -10,7 +10,7 @@ import type { Socket } from 'socket.io-client';
 import './GameCanvas.css';
 
 
-function GameCanvas() {
+function GameCanvas(props: {username: string, onError: () => void},) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
     const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -187,6 +187,12 @@ function GameCanvas() {
             console.log('Received world dimensions from server');
             worldRef.current = data;
         }); 
+        socketRef.current.emit('tiktokUsername', props.username);
+        socketRef.current.on('tiktokError', (e: string) => {
+            console.error('TikTok error:', e);
+            props.onError();
+            window.alert('Error fetching TikTok data. Please check the username and try again.');
+        });
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
 
         return () => {
