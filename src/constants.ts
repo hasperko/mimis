@@ -17,3 +17,5 @@ export const BORDER_COLOR = '#000000';
 export const BORDER_WIDTH = 10;
 
 export const SHOW_NAMES = true; // Set to true to show player names, false to hide them
+
+export const INACTIVE_THRESHOLD = 1000; // Time in milliseconds after which a player is considered inactive

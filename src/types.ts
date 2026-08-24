@@ -11,7 +11,7 @@ export interface Camera {
 
 
 export interface Player {
-    id: number;
+    id: string;
     name: string;
     suffix?: Suffix; // Optional suffix for the name
     showNameTimer?: number; // Optional timer for showing name
@@ -20,4 +20,5 @@ export interface Player {
     color: Color;
     asleepTimer?: number; // Optional timer for sleeping state
     url: string; // URL for the player's image
+    inactiveTimer: number; // Timer for inactive state
 }

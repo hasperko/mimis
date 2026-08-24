@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import {colord} from 'colord';
-import { SHOW_NAMES, PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH } from './constants'
+import { SHOW_NAMES, PLAYER_SIZE, WORLD_WIDTH, WORLD_HEIGHT, CAMERA_BORDER, BACKGROUND_COLOR, BORDER_COLOR, BORDER_WIDTH, INACTIVE_THRESHOLD } from './constants'
 import type { Camera, Player } from './types';
 import { moveCamera } from './camera';
 
@@ -39,11 +39,13 @@ function GameCanvas() {
     function drawPlayers(ctx: CanvasRenderingContext2D, players: Player[]) {
         for (const player of players) {
             const img = player.url ? getImage(player.url) : null;
-            if (img && img.complete && img.naturalWidth !== 0) {
-                ctx.drawImage(img, player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
-            } else {
-                ctx.fillStyle = player.asleepTimer !== undefined ? colord(player.color).darken(0.5).toHex() : player.color;
+            // if(player.asleepTimer !== undefined) {
+            if(player.inactiveTimer >= INACTIVE_THRESHOLD) {
+                ctx.fillStyle = colord(player.color).darken(0.5).toHex();
                 ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+            }
+            else if (img && img.complete && img.naturalWidth !== 0) {
+                ctx.drawImage(img, player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
             }
             if(SHOW_NAMES) {
                 ctx.fillStyle = '#000';
@@ -51,7 +53,7 @@ function GameCanvas() {
                 if (player.suffix) {
                     ctx.fillText(`${player.name} ${player.suffix}`, player.x, player.y - 10);
                 } else {
-                    ctx.fillText(player.name, player.x, player.y - 10);
+                    ctx.fillText(`${player.name} ${player.inactiveTimer}`, player.x, player.y - 10);
                 }
             }
             else if (player.showNameTimer !== undefined) {
