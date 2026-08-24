@@ -42,10 +42,10 @@ function GameCanvas() {
             // if(player.asleepTimer !== undefined) {
             if(player.inactiveTimer >= INACTIVE_THRESHOLD) {
                 ctx.fillStyle = colord(player.color).darken(0.5).toHex();
-                ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+                ctx.fillRect(player.x, player.y, player.scale, player.scale);
             }
             else if (img && img.complete && img.naturalWidth !== 0) {
-                ctx.drawImage(img, player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
+                ctx.drawImage(img, player.x, player.y, player.scale, player.scale);
             }
             if(SHOW_NAMES) {
                 ctx.fillStyle = '#000';

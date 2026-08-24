@@ -17,6 +17,7 @@ export interface Player {
     showNameTimer?: number; // Optional timer for showing name
     x: number;
     y: number;
+    scale: number;
     color: Color;
     asleepTimer?: number; // Optional timer for sleeping state
     url: string; // URL for the player's image
