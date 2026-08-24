@@ -14,6 +14,7 @@ function GameCanvas() {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const AnimationFrameIdRef = useRef<number | null>(null);
     const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+    const worldRef = useRef<{width: number, height: number}>({width: WORLD_WIDTH, height: WORLD_HEIGHT});
 
     const socketRef = useRef<Socket | null>(null);
 
@@ -71,14 +72,14 @@ function GameCanvas() {
 
     const render = (ctx: CanvasRenderingContext2D) => {
         ctx.save();
-        moveCamera(cameraRef.current, keyRef, canvasRef);
+        moveCamera(cameraRef.current, keyRef, canvasRef, worldRef);
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.translate(-cameraRef.current.x, -cameraRef.current.y);
         ctx.fillStyle = BACKGROUND_COLOR;
-        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        ctx.fillRect(0, 0, worldRef.current.width, worldRef.current.height);
         ctx.strokeStyle = BORDER_COLOR;
         ctx.lineWidth = BORDER_WIDTH;
-        ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        ctx.strokeRect(0, 0, worldRef.current.width, worldRef.current.height);
         drawPlayers(ctx, playersRef.current);
         ctx.restore();
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
@@ -110,11 +111,11 @@ function GameCanvas() {
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        if (cameraRef.current.y + canvas.height >= WORLD_HEIGHT + CAMERA_BORDER) {
-            cameraRef.current.y = WORLD_HEIGHT + CAMERA_BORDER - canvas.height;
+        if (cameraRef.current.y + canvas.height >= worldRef.current.height + CAMERA_BORDER) {
+            cameraRef.current.y = worldRef.current.height + CAMERA_BORDER - canvas.height;
         }
-        if (cameraRef.current.x + canvas.width >= WORLD_WIDTH + CAMERA_BORDER) {
-            cameraRef.current.x = WORLD_WIDTH + CAMERA_BORDER - canvas.width;
+        if (cameraRef.current.x + canvas.width >= worldRef.current.width + CAMERA_BORDER) {
+            cameraRef.current.x = worldRef.current.width + CAMERA_BORDER - canvas.width;
         }
     }
 
@@ -131,11 +132,11 @@ function GameCanvas() {
         if (cameraRef.current.y - dy < 0 - CAMERA_BORDER) {
             dy = cameraRef.current.y + CAMERA_BORDER;
         }
-        if (cameraRef.current.x + canvasRef.current!.width - dx > WORLD_WIDTH + CAMERA_BORDER) {
-            dx = cameraRef.current.x + canvasRef.current!.width - (WORLD_WIDTH + CAMERA_BORDER);
+        if (cameraRef.current.x + canvasRef.current!.width - dx > worldRef.current.width + CAMERA_BORDER) {
+            dx = cameraRef.current.x + canvasRef.current!.width - (worldRef.current.width + CAMERA_BORDER);
         }
-        if (cameraRef.current.y + canvasRef.current!.height - dy > WORLD_HEIGHT + CAMERA_BORDER) {
-            dy = cameraRef.current.y + canvasRef.current!.height - (WORLD_HEIGHT + CAMERA_BORDER);
+        if (cameraRef.current.y + canvasRef.current!.height - dy > worldRef.current.height + CAMERA_BORDER) {
+            dy = cameraRef.current.y + canvasRef.current!.height - (worldRef.current.height + CAMERA_BORDER);
         }
         cameraRef.current.x -= dx;
         cameraRef.current.y -= dy;
@@ -164,7 +165,6 @@ function GameCanvas() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
@@ -183,6 +183,10 @@ function GameCanvas() {
             console.log('Received players from server');
             playersRef.current = data;
         })
+        socketRef.current.on('worldDimensions', (data: {width: number, height: number}) => {
+            console.log('Received world dimensions from server');
+            worldRef.current = data;
+        }); 
         AnimationFrameIdRef.current = requestAnimationFrame(() => render(ctx));
 
         return () => {
