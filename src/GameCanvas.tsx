@@ -178,7 +178,7 @@ function GameCanvas(props: {username: string, onError: () => void},) {
         window.addEventListener('touchmove', handleTouchMove, { passive: false });
         window.addEventListener('touchend', handleTouchEnd);
 
-        socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000');
+        socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:3000');
         socketRef.current.on('players', (data: Player[]) => {
             console.log('Received players from server');
             playersRef.current = data;
