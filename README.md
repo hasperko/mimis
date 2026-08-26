@@ -4,9 +4,7 @@
 
 **Live:** [mimmis.org](https://mimmis.org) · **Backend repo:** [mimmis-backend](https://github.com/hasperko/mimis-backend)
 
-<!-- TODO: drop a short screen-capture GIF here — it sells the project faster than any paragraph.
-     Record ~5s of mimmis wandering + growing, export as GIF, commit it, and reference it:
-     ![mimmis in action](./docs/demo.gif) -->
+![mimmis in action](./docs/gif.gif)
 
 ---
 
